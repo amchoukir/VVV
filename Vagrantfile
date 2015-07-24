@@ -219,34 +219,22 @@ Vagrant.configure("2") do |config|
 
   # Provisioning
   #
-  # Process one or more provisioning scripts depending on the existence of custom files.
+  # SaltStack is a configuration management and a an orchestration framework
+  # that allows you to describe the state in which your host should be.
   #
-  # provison-pre.sh acts as a pre-hook to our default provisioning script. Anything that
-  # should run before the shell commands laid out in provision.sh (or your provision-custom.sh
-  # file) should go in this script. If it does not exist, no extra provisioning will run.
-  if File.exists?(File.join(vagrant_dir,'provision','provision-pre.sh')) then
-    config.vm.provision :shell, :path => File.join( "provision", "provision-pre.sh" )
-  end
 
-  # provision.sh or provision-custom.sh
-  #
-  # By default, Vagrantfile is set to use the provision.sh bash script located in the
-  # provision directory. If it is detected that a provision-custom.sh script has been
-  # created, that is run as a replacement. This is an opportunity to replace the entirety
-  # of the provisioning provided by default.
-  if File.exists?(File.join(vagrant_dir,'provision','provision-custom.sh')) then
-    config.vm.provision :shell, :path => File.join( "provision", "provision-custom.sh" )
-  else
-    config.vm.provision :shell, :path => File.join( "provision", "provision.sh" )
-  end
+  # There is currently a bug with Vagrant salt bootstrap. This is a workaround.
+  config.vm.provision :shell, path: "provision/base_salt_provision.sh", privileged: false
+  config.vm.synced_folder "salt/roots/", "/srv/salt/"
 
-  # provision-post.sh acts as a post-hook to the default provisioning. Anything that should
-  # run after the shell commands laid out in provision.sh or provision-custom.sh should be
-  # put into this file. This provides a good opportunity to install additional packages
-  # without having to replace the entire default provisioning script.
-  if File.exists?(File.join(vagrant_dir,'provision','provision-post.sh')) then
-    config.vm.provision :shell, :path => File.join( "provision", "provision-post.sh" )
-  end
+  # TODO: Re-enable this piece once the bootstrap bug is fixed
+  #config.vm.provision :salt do |salt|
+  #    salt.minion_config = "salt/minion"
+  #    salt.run_highstate = true
+  #    salt.verbose = true
+  #    salt.log_level = "debug"
+  #    salt.colorize = true
+  #end
 
   # Always start MySQL on boot, even when not running the full provisioner
   # (run: "always" support added in 1.6.0)
@@ -264,15 +252,15 @@ Vagrant.configure("2") do |config|
   # into the VM and execute things. By default, each of these scripts calls db_backup
   # to create backups of all current databases. This can be overridden with custom
   # scripting. See the individual files in config/homebin/ for details.
-  if defined? VagrantPlugins::Triggers
-    config.trigger.before :halt, :stdout => true do
-      run "vagrant ssh -c 'vagrant_halt'"
-    end
-    config.trigger.before :suspend, :stdout => true do
-      run "vagrant ssh -c 'vagrant_suspend'"
-    end
-    config.trigger.before :destroy, :stdout => true do
-      run "vagrant ssh -c 'vagrant_destroy'"
-    end
-  end
+  #if defined? VagrantPlugins::Triggers
+  #  config.trigger.before :halt, :stdout => true do
+  #    run "vagrant ssh -c 'vagrant_halt'"
+  #  end
+  #  config.trigger.before :suspend, :stdout => true do
+  #    run "vagrant ssh -c 'vagrant_suspend'"
+  #  end
+  #  config.trigger.before :destroy, :stdout => true do
+  #    run "vagrant ssh -c 'vagrant_destroy'"
+  #  end
+  #end
 end
